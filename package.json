@@ -1,0 +1,16 @@
+{
+  "name": "workr",
+  "version": "1.0.0",
+  "description": "Universal job queue platform for background tasks",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["job-queue", "worker", "background-tasks"],
+  "author": "Jeffrey",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.33.0"
+  }
+}
