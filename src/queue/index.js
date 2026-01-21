@@ -1,8 +1,14 @@
 /**
- * Workr Queue - Memory-based job queue
+ * Workr Queue - Memory-based job queue with JSON persistence
  */
 
 const EventEmitter = require('events');
+const fs = require('fs');
+const path = require('path');
+
+// 持久化檔案路徑
+const DATA_DIR = path.join(__dirname, '../../data');
+const QUEUE_FILE = path.join(DATA_DIR, 'queue.json');
 
 class Queue extends EventEmitter {
   constructor() {
@@ -12,6 +18,54 @@ class Queue extends EventEmitter {
     this.running = new Map();   // 正在執行的 jobId -> worker
     this.completed = [];        // 已完成的 jobId（最近 100 個）
     this.isProcessing = false;
+
+    // 啟動時載入
+    this.load();
+  }
+
+  // 載入持久化資料
+  load() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+
+      if (fs.existsSync(QUEUE_FILE)) {
+        const data = JSON.parse(fs.readFileSync(QUEUE_FILE, 'utf8'));
+
+        // 恢復 jobs
+        if (data.jobs) {
+          for (const job of data.jobs) {
+            // running 狀態的改回 queued（重啟時重新執行）
+            if (job.status === 'running') {
+              job.status = 'queued';
+              job.startedAt = null;
+            }
+            this.jobs.set(job.id, job);
+
+            if (job.status === 'queued') {
+              this.pending.push(job.id);
+            } else if (job.status === 'completed' || job.status === 'failed') {
+              this.completed.push(job.id);
+            }
+          }
+        }
+
+        console.log(`[queue] Loaded ${this.jobs.size} jobs (${this.pending.length} pending)`);
+      }
+    } catch (e) {
+      console.error('[queue] Failed to load queue:', e.message);
+    }
+  }
+
+  // 持久化到檔案
+  save() {
+    try {
+      const jobs = Array.from(this.jobs.values());
+      fs.writeFileSync(QUEUE_FILE, JSON.stringify({ jobs }, null, 2));
+    } catch (e) {
+      console.error('[queue] Failed to save queue:', e.message);
+    }
   }
 
   // 產生 Job ID
@@ -56,6 +110,7 @@ class Queue extends EventEmitter {
 
     console.log(`[queue] Job added: ${jobId} (${type}), pending: ${this.pending.length}`);
     this.emit('job:added', job);
+    this.save();
 
     return job;
   }
@@ -120,6 +175,7 @@ class Queue extends EventEmitter {
 
     console.log(`[queue] Job completed: ${jobId} (${job.duration}ms)`);
     this.emit('job:completed', job);
+    this.save();
 
     // Callback
     if (job.callback) {
@@ -163,6 +219,7 @@ class Queue extends EventEmitter {
 
     console.log(`[queue] Job failed: ${jobId} - ${error}`);
     this.emit('job:failed', job);
+    this.save();
 
     // Callback
     if (job.callback) {
@@ -192,6 +249,7 @@ class Queue extends EventEmitter {
 
     console.log(`[queue] Job cancelled: ${jobId}`);
     this.emit('job:cancelled', job);
+    this.save();
 
     return job;
   }
