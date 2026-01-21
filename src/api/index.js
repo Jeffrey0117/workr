@@ -3,6 +3,7 @@
  */
 
 const queue = require('../queue');
+const { getAdminHTML } = require('./admin');
 
 // SSE 連線
 const sseClients = new Set();
@@ -50,6 +51,12 @@ async function router(req, res) {
   const method = req.method;
 
   try {
+    // Admin Dashboard
+    if (pathname === '/admin' || pathname === '/admin/') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(getAdminHTML());
+    }
+
     // Health check
     if (pathname === '/health') {
       return json(res, { ok: true, ...queue.stats() });

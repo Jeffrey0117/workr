@@ -22,9 +22,12 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // Auth check (except health)
+  // Auth check (except health, admin, events)
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  if (url.pathname !== '/health' && url.pathname !== '/api/events') {
+  const publicPaths = ['/health', '/admin', '/admin/', '/api/events', '/api/jobs', '/api/stats'];
+  const isPublic = publicPaths.some(p => url.pathname === p || url.pathname.startsWith('/api/jobs/'));
+
+  if (!isPublic) {
     const auth = req.headers.authorization;
     if (!auth || auth !== `Bearer ${API_KEY}`) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
