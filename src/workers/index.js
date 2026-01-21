@@ -5,8 +5,8 @@
 const queue = require('../queue');
 const thumbnailWorker = require('./thumbnail');
 const webpWorker = require('./webp');
-// const hlsWorker = require('./hls');
-// const downloadWorker = require('./download');
+const downloadWorker = require('./download');
+const hlsWorker = require('./hls');
 
 // 並發控制
 const CONCURRENCY = {
@@ -30,8 +30,8 @@ const running = {
 const workers = {
   thumbnail: thumbnailWorker,
   webp: webpWorker,
-  // hls: hlsWorker,
-  // download: downloadWorker,
+  download: downloadWorker,
+  hls: hlsWorker,
 };
 
 // 處理任務
