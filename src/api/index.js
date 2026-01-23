@@ -5,6 +5,7 @@
 const queue = require('../queue');
 const { getAdminHTML } = require('./admin');
 const { getDocsHTML } = require('./docs');
+const { handleProxyRequest } = require('./proxy-endpoint');
 
 // SSE 連線
 const sseClients = new Set();
@@ -62,6 +63,11 @@ async function router(req, res) {
     if (pathname === '/docs' || pathname === '/docs/') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(getDocsHTML());
+    }
+
+    // Direct Proxy Endpoint
+    if (pathname === '/proxy') {
+      return handleProxyRequest(req, res);
     }
 
     // Health check
