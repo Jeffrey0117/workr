@@ -17,7 +17,10 @@ async function handleProxyRequest(req, res) {
   const targetUrl = reqUrl.searchParams.get('url');
 
   if (!targetUrl) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.writeHead(400, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    });
     return res.end(JSON.stringify({
       error: 'Missing url parameter',
       usage: 'GET /proxy?url=https://example.com'
@@ -28,28 +31,57 @@ async function handleProxyRequest(req, res) {
     const target = new URL(targetUrl);
     const protocol = target.protocol === 'https:' ? https : http;
 
-    // 準備 headers（移除 host, 保留其他）
-    const headers = { ...req.headers };
-    delete headers.host;
-    delete headers.connection;
-    headers['host'] = target.hostname;
+    // 只保留安全的 headers，過濾掉瀏覽器特定的 headers
+    const safeHeaders = {};
+    const allowedHeaders = [
+      'accept',
+      'accept-language',
+      'content-type',
+      'authorization',
+      'user-agent',
+      'referer'
+    ];
+
+    for (const [key, value] of Object.entries(req.headers)) {
+      const lowerKey = key.toLowerCase();
+      // 跳過 host, connection 和瀏覽器安全相關的 headers
+      if (lowerKey.startsWith('sec-') ||
+          lowerKey.startsWith('cf-') ||
+          lowerKey === 'host' ||
+          lowerKey === 'connection' ||
+          lowerKey === 'origin') {
+        continue;
+      }
+      // 只保留允許的 headers
+      if (allowedHeaders.includes(lowerKey) || lowerKey.startsWith('x-')) {
+        safeHeaders[key] = value;
+      }
+    }
+
+    // 設定目標 host
+    safeHeaders['host'] = target.hostname;
 
     const options = {
       hostname: target.hostname,
       port: target.port || (target.protocol === 'https:' ? 443 : 80),
       path: target.pathname + target.search,
       method: req.method,
-      headers
+      headers: safeHeaders
     };
 
     const proxyReq = protocol.request(options, (proxyRes) => {
-      // 設定 CORS
+      // 設定 CORS headers
       const responseHeaders = {
         ...proxyRes.headers,
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': '*'
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Expose-Headers': '*'
       };
+
+      // 移除可能衝突的 headers
+      delete responseHeaders['content-security-policy'];
+      delete responseHeaders['x-frame-options'];
 
       res.writeHead(proxyRes.statusCode, responseHeaders);
       proxyRes.pipe(res);
@@ -57,41 +89,52 @@ async function handleProxyRequest(req, res) {
 
     proxyReq.on('error', (err) => {
       console.error('[proxy] Error:', err.message);
-      res.writeHead(502, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      });
-      res.end(JSON.stringify({
-        error: 'Bad Gateway',
-        message: err.message
-      }));
+      if (!res.headersSent) {
+        res.writeHead(502, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({
+          error: 'Bad Gateway',
+          message: err.message
+        }));
+      }
     });
 
     // 設定 timeout
     proxyReq.setTimeout(30000, () => {
       proxyReq.destroy();
-      res.writeHead(504, {
+      if (!res.headersSent) {
+        res.writeHead(504, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({
+          error: 'Gateway Timeout',
+          message: 'Request timeout after 30s'
+        }));
+      }
+    });
+
+    // 處理請求 body
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      req.pipe(proxyReq);
+    } else {
+      proxyReq.end();
+    }
+
+  } catch (err) {
+    console.error('[proxy] Setup error:', err.message);
+    if (!res.headersSent) {
+      res.writeHead(400, {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       });
       res.end(JSON.stringify({
-        error: 'Gateway Timeout',
-        message: 'Request timeout after 30s'
+        error: 'Invalid URL',
+        message: err.message
       }));
-    });
-
-    // 轉發 body（如果有）
-    req.pipe(proxyReq);
-
-  } catch (err) {
-    res.writeHead(400, {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*'
-    });
-    res.end(JSON.stringify({
-      error: 'Invalid URL',
-      message: err.message
-    }));
+    }
   }
 }
 
