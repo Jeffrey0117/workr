@@ -4,6 +4,7 @@
 
 const queue = require('../queue');
 const { getAdminHTML } = require('./admin');
+const { getDocsHTML } = require('./docs');
 
 // SSE 連線
 const sseClients = new Set();
@@ -57,6 +58,12 @@ async function router(req, res) {
       return res.end(getAdminHTML());
     }
 
+    // Documentation
+    if (pathname === '/docs' || pathname === '/docs/') {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(getDocsHTML());
+    }
+
     // Health check
     if (pathname === '/health') {
       return json(res, { ok: true, ...queue.stats() });
@@ -95,7 +102,7 @@ async function router(req, res) {
         return json(res, { error: 'Missing type or payload' }, 400);
       }
 
-      const validTypes = ['thumbnail', 'webp', 'hls', 'download', 'deploy'];
+      const validTypes = ['thumbnail', 'webp', 'hls', 'download', 'proxy', 'deploy'];
       if (!validTypes.includes(body.type)) {
         return json(res, { error: `Invalid type. Valid: ${validTypes.join(', ')}` }, 400);
       }

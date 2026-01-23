@@ -22,9 +22,9 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // Auth check (except health, admin, events)
+  // Auth check (except health, admin, events, docs)
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  const publicPaths = ['/health', '/admin', '/admin/', '/api/events', '/api/jobs', '/api/stats'];
+  const publicPaths = ['/health', '/admin', '/admin/', '/docs', '/api/events', '/api/jobs', '/api/stats'];
   const isPublic = publicPaths.some(p => url.pathname === p || url.pathname.startsWith('/api/jobs/'));
 
   if (!isPublic) {

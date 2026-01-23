@@ -7,6 +7,7 @@ const thumbnailWorker = require('./thumbnail');
 const webpWorker = require('./webp');
 const downloadWorker = require('./download');
 const hlsWorker = require('./hls');
+const proxyWorker = require('./proxy');
 
 // 並發控制
 const CONCURRENCY = {
@@ -14,6 +15,7 @@ const CONCURRENCY = {
   webp: 3,
   hls: 1,
   download: 5,
+  proxy: 10,
   deploy: 1
 };
 
@@ -23,6 +25,7 @@ const running = {
   webp: 0,
   hls: 0,
   download: 0,
+  proxy: 0,
   deploy: 0
 };
 
@@ -32,6 +35,7 @@ const workers = {
   webp: webpWorker,
   download: downloadWorker,
   hls: hlsWorker,
+  proxy: proxyWorker,
 };
 
 // 處理任務
