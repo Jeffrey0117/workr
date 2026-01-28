@@ -1,6 +1,45 @@
+<div align="center">
+
+<img src="logo.png" alt="Workr Logo" width="180" />
+
 # Workr
 
-Universal job queue platform for background tasks.
+**Universal Job Queue Platform for Background Tasks**
+
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Jeffrey0117/workr/pulls)
+
+</div>
+
+---
+
+<details>
+<summary>🇹🇼 <b>中文說明</b>（點擊展開）</summary>
+
+### 簡介
+
+**Workr** 是一個輕量級的通用後台任務佇列平台，專為視頻處理、圖片轉換等耗時任務設計。
+
+### 核心特色
+
+- 🚀 **輕量高效** — 純 Node.js 實現，無框架依賴
+- 📦 **多種任務類型** — 縮圖提取、WebP 轉換、HLS 轉碼、檔案下載
+- ⚡ **優先級佇列** — 支援任務優先級排序
+- 🔄 **智能重試** — 指數退避重試機制
+- 📡 **即時更新** — SSE 推送任務進度
+- 🔔 **回調通知** — 任務完成自動通知
+
+### 使用場景
+
+- 視頻平台的轉碼服務
+- 圖片處理 pipeline
+- 批量下載任務
+- 任何需要後台處理的長時間任務
+
+</details>
+
+---
 
 ## Features
 
